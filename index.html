@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PNG to ICO Converter</title>
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 60px auto; padding: 0 16px; color: #222; }
+    h1   { font-size: 1.3rem; margin-bottom: 4px; }
+    p    { color: #555; font-size: 0.85rem; margin: 0 0 20px; }
+    #info { font-size: 0.85rem; color: #333; margin-bottom: 12px; }
+    button { padding: 8px 18px; cursor: pointer; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #status { font-size: 0.85rem; color: #444; margin-top: 10px; }
+  </style>
+</head>
+<body>
+  <h1>PNG → ICO Converter</h1>
+  <p>Converts PNG to ICO keeping the exact original resolution. Runs fully in your browser — nothing is uploaded.</p>
+
+  <input type="file" id="file-input" accept="image/png" />
+  <br /><br />
+  <div id="info"></div>
+  <button id="convert-btn" disabled>Convert &amp; Download .ico</button>
+  <p id="status"></p>
+
+<script>
+  const fileInput  = document.getElementById('file-input');
+  const info       = document.getElementById('info');
+  const convertBtn = document.getElementById('convert-btn');
+  const status     = document.getElementById('status');
+  let selectedFile = null, imgWidth = 0, imgHeight = 0;
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    if (!file.type.match(/image\/png/i)) { status.textContent = 'Please select a PNG file.'; return; }
+    selectedFile = file;
+    const img = new Image();
+    img.onload = () => {
+      imgWidth = img.naturalWidth; imgHeight = img.naturalHeight;
+      info.textContent = `${file.name} — ${imgWidth} × ${imgHeight} px · ${(file.size/1024).toFixed(1)} KB`;
+      convertBtn.disabled = false;
+      status.textContent = '';
+    };
+    img.src = URL.createObjectURL(file);
+  });
+
+  convertBtn.addEventListener('click', async () => {
+    status.textContent = 'Converting...';
+    convertBtn.disabled = true;
+    try {
+      const bytes = await pngToIco(selectedFile, imgWidth, imgHeight);
+      download(bytes, selectedFile.name.replace(/\.png$/i, '') + '.ico');
+      status.textContent = '✓ Done! ICO file downloaded.';
+    } catch (e) {
+      status.textContent = 'Error: ' + e.message;
+    } finally {
+      convertBtn.disabled = false;
+    }
+  });
+
+  async function pngToIco(file, w, h) {
+    const bmp = await createImageBitmap(file);
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(bmp, 0, 0); bmp.close();
+    const { data } = ctx.getImageData(0, 0, w, h);
+
+    // RGBA → BGRA, rows flipped bottom-up (DIB format)
+    const pixels = new Uint8Array(w * h * 4);
+    for (let row = 0; row < h; row++) {
+      for (let col = 0; col < w; col++) {
+        const s = ((h - 1 - row) * w + col) * 4;
+        const d = (row * w + col) * 4;
+        pixels[d]=data[s+2]; pixels[d+1]=data[s+1]; pixels[d+2]=data[s+0]; pixels[d+3]=data[s+3];
+      }
+    }
+    const mask = new Uint8Array(h * Math.ceil(w / 32) * 4); // AND mask (all zero)
+
+    // BITMAPINFOHEADER
+    const bih = new DataView(new ArrayBuffer(40));
+    bih.setUint32(0,40,1); bih.setInt32(4,w,1); bih.setInt32(8,h*2,1);
+    bih.setUint16(12,1,1); bih.setUint16(14,32,1);
+    bih.setUint32(20, pixels.length + mask.length, 1);
+
+    const imgSize = 40 + pixels.length + mask.length;
+
+    // ICONDIRENTRY
+    const ent = new DataView(new ArrayBuffer(16));
+    ent.setUint8(0, w>=256?0:w); ent.setUint8(1, h>=256?0:h);
+    ent.setUint16(4,1,1); ent.setUint16(6,32,1);
+    ent.setUint32(8, imgSize, 1); ent.setUint32(12, 22, 1); // offset = 6+16
+
+    // ICONDIR
+    const dir = new DataView(new ArrayBuffer(6));
+    dir.setUint16(2,1,1); dir.setUint16(4,1,1);
+
+    const out = new Uint8Array(6 + 16 + imgSize); let off = 0;
+    const w_ = b => { out.set(new Uint8Array(b.buffer), off); off += b.buffer.byteLength; };
+    w_(dir); w_(ent); w_(bih);
+    out.set(pixels, off); off += pixels.length;
+    out.set(mask,   off);
+    return out;
+  }
+
+  function download(bytes, filename) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([bytes], { type: 'image/x-icon' }));
+    a.download = filename; a.click();
+  }
+</script>
+</body>
+</html>

@@ -4,19 +4,19 @@
   <meta charset="UTF-8" />
   <title>PNG → ICO</title>
   <style>
-    body { font-family: system-ui, sans-serif; background: #f5f5f5; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
+    body { font-family: system-ui, sans-serif; background: linear-gradient(135deg, #ede9fe 0%, #dbeafe 100%); display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
     .box { background: #fff; border: 1px solid #e0e0e0; border-radius: 10px; width: 700px; display: grid; grid-template-columns: 1fr 1fr; overflow: hidden; box-shadow: 0 2px 16px rgba(0,0,0,0.07); }
 
     /* LEFT */
-    .left { padding: 36px 32px; border-right: 1px solid #ebebeb; }
-    .left h1 { font-size: 1.1rem; font-weight: 700; margin: 0 0 4px; }
+    .left { padding: 36px 32px; border-right: 1px solid #ebebeb; border-top: 4px solid #6d28d9; }
+    .left h1 { font-size: 1.1rem; font-weight: 700; margin: 0 0 4px; color: #4c1d95; }
     .left p  { font-size: 0.78rem; color: #888; margin: 0 0 24px; }
-    .drop { border: 2px dashed #d0d0d0; border-radius: 8px; padding: 36px 20px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; position: relative; }
-    .drop:hover, .drop.over { border-color: #555; background: #fafafa; }
+    .drop { border: 2px dashed #c4b5fd; border-radius: 8px; padding: 36px 20px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; position: relative; }
+    .drop:hover, .drop.over { border-color: #7c3aed; background: #f5f3ff; }
     .drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
     .drop-icon { font-size: 2rem; display: block; margin-bottom: 8px; }
     .drop span  { font-size: 0.8rem; color: #aaa; }
-    .drop span b { color: #444; font-weight: 600; }
+    .drop span b { color: #7c3aed; font-weight: 600; }
     .meta { margin-top: 18px; font-size: 0.78rem; color: #666; line-height: 1.6; min-height: 40px; }
 
     /* RIGHT */
@@ -24,10 +24,11 @@
     .preview-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: repeating-conic-gradient(#f0f0f0 0% 25%, #fafafa 0% 50%) 0 0 / 16px 16px; border-radius: 8px; min-height: 160px; margin-bottom: 20px; }
     .preview-wrap img { max-width: 100%; max-height: 160px; object-fit: contain; display: none; border-radius: 4px; }
     .preview-wrap .placeholder { font-size: 0.78rem; color: #ccc; }
-    button { width: 100%; padding: 11px; background: #222; color: #fff; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
-    button:hover:not(:disabled) { background: #000; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
+    button { width: 100%; padding: 11px; background: #6d28d9; color: #fff; border: none; border-radius: 7px; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: background .15s; }
+    button:hover:not(:disabled) { background: #5b21b6; }
+    button:disabled { background: #d1d5db; cursor: not-allowed; }
     .status { font-size: 0.76rem; color: #888; text-align: center; margin-top: 10px; min-height: 16px; }
+    .status.ok { color: #059669; }
   </style>
 </head>
 <body>
@@ -91,7 +92,7 @@
       const a = document.createElement('a');
       a.href = URL.createObjectURL(new Blob([bytes], { type: 'image/x-icon' }));
       a.download = file.name.replace(/\.png$/i, '') + '.ico'; a.click();
-      status.textContent = '✓ Downloaded';
+      status.textContent = '✓ Downloaded'; status.className = 'status ok';
     } catch(e) { status.textContent = 'Error: ' + e.message; }
     finally { btn.disabled = false; }
   });
